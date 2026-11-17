@@ -1,0 +1,17 @@
+name: Spawners
+version: 1.0.0
+main: com.castros.spawners.SpawnerPlugin
+api-version: "26.1"
+description: Spawners con niveles, menu, estrellas y toque de seda
+commands:
+  spawner:
+    description: Comandos de spawners
+    usage: /spawner
+    aliases: [spawners]
+permissions:
+  spawner.usar:
+    description: Usar el menu de spawners
+    default: true
+  spawner.admin:
+    description: Administrar spawners (dar, estrellas, abrir y romper los de otros)
+    default: op

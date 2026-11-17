@@ -1,0 +1,27 @@
+# Rango en bloques para que un spawner encendido funcione (vanilla = 16)
+rango-activacion: 16
+
+estrella:
+  nombre: "&e✦ Estrella de Spawner"
+  # true = las estrellas y el loot extra solo salen si mata un jugador
+  solo-si-mata-jugador: true
+
+romper:
+  # true = solo se puede romper con Toque de Seda (si no, se cancela y no se pierde)
+  requiere-toque-de-seda: true
+
+# costo = estrellas para SUBIR a ese nivel (el nivel 1 es gratis)
+# cantidad = mobs por spawn | delay-* en ticks (20 = 1 segundo)
+# estrella-prob = probabilidad de que el mob suelte estrellas (0.0 a 1.0)
+# loot-prob / loot-mult = probabilidad de que el loot del mob se multiplique y por cuanto
+niveles:
+  1:  {cantidad: 2,  delay-min: 400, delay-max: 800, max-cercanos: 8,  costo: 0,   estrella-prob: 0.20, estrella-max: 1, loot-prob: 0.00, loot-mult: 1}
+  2:  {cantidad: 2,  delay-min: 360, delay-max: 700, max-cercanos: 10, costo: 5,   estrella-prob: 0.25, estrella-max: 1, loot-prob: 0.05, loot-mult: 2}
+  3:  {cantidad: 3,  delay-min: 320, delay-max: 640, max-cercanos: 12, costo: 10,  estrella-prob: 0.30, estrella-max: 2, loot-prob: 0.10, loot-mult: 2}
+  4:  {cantidad: 3,  delay-min: 280, delay-max: 560, max-cercanos: 14, costo: 20,  estrella-prob: 0.35, estrella-max: 2, loot-prob: 0.15, loot-mult: 2}
+  5:  {cantidad: 4,  delay-min: 240, delay-max: 480, max-cercanos: 16, costo: 35,  estrella-prob: 0.40, estrella-max: 3, loot-prob: 0.20, loot-mult: 2}
+  6:  {cantidad: 5,  delay-min: 200, delay-max: 400, max-cercanos: 18, costo: 55,  estrella-prob: 0.45, estrella-max: 3, loot-prob: 0.30, loot-mult: 2}
+  7:  {cantidad: 6,  delay-min: 160, delay-max: 320, max-cercanos: 20, costo: 80,  estrella-prob: 0.50, estrella-max: 4, loot-prob: 0.40, loot-mult: 3}
+  8:  {cantidad: 8,  delay-min: 120, delay-max: 240, max-cercanos: 24, costo: 120, estrella-prob: 0.60, estrella-max: 5, loot-prob: 0.50, loot-mult: 3}
+  9:  {cantidad: 10, delay-min: 80,  delay-max: 160, max-cercanos: 28, costo: 180, estrella-prob: 0.70, estrella-max: 6, loot-prob: 0.60, loot-mult: 3}
+  10: {cantidad: 14, delay-min: 40,  delay-max: 100, max-cercanos: 40, costo: 300, estrella-prob: 0.85, estrella-max: 8, loot-prob: 0.75, loot-mult: 4}
