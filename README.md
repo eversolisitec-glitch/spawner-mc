@@ -15,3 +15,7 @@ Todo (costos, niveles, probabilidades) está en plugins/Spawners/config.yml. Rec
 No son ítems: se guardan en el jugador y se ven en pantalla (modo en config.yml: ACTIONBAR, BOSSBAR o NINGUNO).
 /spawner saldo  - ver cuántas tienes
 /spawner pantalla  - mostrar/ocultar el contador
+
+## PlaceholderAPI
+Si PlaceholderAPI esta instalado, se registra %spawners_estrellas% (saldo de estrellas del jugador).
+Para mostrarlo en TAB u otros plugins usa pantalla.modo: NINGUNO para no duplicarlo en pantalla.

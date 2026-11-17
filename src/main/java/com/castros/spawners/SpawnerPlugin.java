@@ -55,6 +55,21 @@ public final class SpawnerPlugin extends JavaPlugin {
         kSaldo = new NamespacedKey(this, "saldo_estrellas");
         kOculto = new NamespacedKey(this, "ocultar_contador");
 
+        // PlaceholderAPI: %spawners_estrellas% (antes de lo demas para que nada lo impida)
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            try {
+                if (new SpawnersExpansion(this).register()) {
+                    getLogger().info("Placeholder %spawners_estrellas% registrado.");
+                } else {
+                    getLogger().warning("PlaceholderAPI no acepto el registro de %spawners_estrellas%.");
+                }
+            } catch (Throwable t) {
+                getLogger().warning("No se pudo registrar el placeholder: " + t);
+            }
+        } else {
+            getLogger().warning("PlaceholderAPI no encontrado, %spawners_estrellas% no estara disponible.");
+        }
+
         getServer().getPluginManager().registerEvents(new SpawnerListener(this), this);
         SpawnerCommand cmd = new SpawnerCommand(this);
         getCommand("spawner").setExecutor(cmd);

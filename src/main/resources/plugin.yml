@@ -1,7 +1,8 @@
 name: Spawners
-version: 1.0.0
+version: 1.0.1
 main: com.castros.spawners.SpawnerPlugin
 api-version: "26.1"
+softdepend: [PlaceholderAPI]
 description: Spawners con niveles, menu, estrellas y toque de seda
 commands:
   spawner:
