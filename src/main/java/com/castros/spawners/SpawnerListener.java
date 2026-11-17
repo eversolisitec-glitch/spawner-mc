@@ -23,6 +23,7 @@ import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -181,11 +182,13 @@ public class SpawnerListener implements Listener {
         LivingEntity m = e.getEntity();
         Integer nv = m.getPersistentDataContainer().get(plugin.kMobNivel, PersistentDataType.INTEGER);
         if (nv == null) return;
-        if (plugin.getConfig().getBoolean("estrella.solo-si-mata-jugador", true) && m.getKiller() == null) return;
 
+        Player killer = m.getKiller();
         Nivel n = plugin.nivel(nv);
+        boolean soloJugador = plugin.getConfig().getBoolean("estrella.solo-si-mata-jugador", true);
 
-        if (n.lootMult() > 1 && rnd.nextDouble() < n.lootProb()) {
+        // Loot extra
+        if (n.lootMult() > 1 && (killer != null || !soloJugador) && rnd.nextDouble() < n.lootProb()) {
             List<ItemStack> extra = new ArrayList<>();
             for (ItemStack it : e.getDrops()) {
                 ItemStack copia = it.clone();
@@ -195,9 +198,23 @@ public class SpawnerListener implements Listener {
             e.getDrops().addAll(extra);
         }
 
-        if (rnd.nextDouble() < n.estrellaProb()) {
-            e.getDrops().add(plugin.crearEstrella(1 + rnd.nextInt(n.estrellaMax())));
+        // Estrellas digitales: van directo al saldo del jugador que mata el mob
+        if (killer != null && rnd.nextDouble() < n.estrellaProb()) {
+            int q = 1 + rnd.nextInt(n.estrellaMax());
+            plugin.sumar(killer, q);
+            killer.sendActionBar(c("&e+" + q + " ✦ &7| Total: &e" + plugin.saldo(killer)));
         }
+    }
+
+    @EventHandler
+    public void entrar(PlayerJoinEvent e) {
+        Player p = e.getPlayer();
+        plugin.barras.remove(p.getUniqueId());
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!p.isOnline()) return;
+            plugin.convertirItems(p);
+            plugin.refrescar(p);
+        }, 20L);
     }
 
     // ---------- Menu ----------
@@ -275,7 +292,7 @@ public class SpawnerListener implements Listener {
         // Mejorar
         if (nv < max) {
             Nivel sig = plugin.nivel(nv + 1);
-            int tiene = plugin.contarEstrellas(p);
+            int tiene = plugin.saldo(p);
             List<String> l = new ArrayList<>(List.of(
                     "&7Costo: &e" + sig.costo() + " estrellas",
                     "&7Tienes: " + (tiene >= sig.costo() ? "&a" : "&c") + tiene,
@@ -359,13 +376,13 @@ public class SpawnerListener implements Listener {
             return;
         }
         Nivel sig = plugin.nivel(nv + 1);
-        int tiene = plugin.contarEstrellas(p);
+        int tiene = plugin.saldo(p);
         if (tiene < sig.costo()) {
             plugin.msg(p, "&cTe faltan &e" + (sig.costo() - tiene) + " estrellas&c.");
             p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             return;
         }
-        plugin.quitarEstrellas(p, sig.costo());
+        plugin.restar(p, sig.costo());
         d.set(plugin.kNivel, PersistentDataType.INTEGER, nv + 1);
         plugin.aplicar(cs);
         cs.update(true, false);

@@ -12,6 +12,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,10 +33,12 @@ public class SpawnerCommand implements CommandExecutor, TabCompleter {
 
     private void ayuda(CommandSender s) {
         say(s, "Comandos:");
+        s.sendMessage(SpawnerPlugin.c("&e/spawner saldo &7- cuántas estrellas tienes"));
+        s.sendMessage(SpawnerPlugin.c("&e/spawner pantalla &7- mostrar/ocultar el contador en pantalla"));
         s.sendMessage(SpawnerPlugin.c("&e/spawner amigo agregar|quitar <jugador> &7(mirando al spawner)"));
         if (s.hasPermission("spawner.admin")) {
             s.sendMessage(SpawnerPlugin.c("&e/spawner dar <jugador> <mob> [nivel]"));
-            s.sendMessage(SpawnerPlugin.c("&e/spawner estrellas <jugador> <cantidad>"));
+            s.sendMessage(SpawnerPlugin.c("&e/spawner estrellas <jugador> <cantidad> &7(negativo = quitar)"));
             s.sendMessage(SpawnerPlugin.c("&e/spawner recargar"));
         }
     }
@@ -50,6 +53,8 @@ public class SpawnerCommand implements CommandExecutor, TabCompleter {
             case "dar" -> dar(sender, args);
             case "estrellas" -> estrellas(sender, args);
             case "amigo" -> amigo(sender, args);
+            case "saldo" -> saldo(sender);
+            case "pantalla" -> pantalla(sender);
             case "recargar" -> {
                 if (!sender.hasPermission("spawner.admin")) {
                     say(sender, "&cNo tienes permiso.");
@@ -123,16 +128,32 @@ public class SpawnerCommand implements CommandExecutor, TabCompleter {
             say(s, "&cLa cantidad debe ser un número.");
             return;
         }
-        if (cant < 1) {
-            say(s, "&cLa cantidad debe ser mayor que 0.");
+        if (cant == 0) {
+            say(s, "&cLa cantidad no puede ser 0.");
             return;
         }
-        while (cant > 0) {
-            int lote = Math.min(cant, 64);
-            plugin.entregar(objetivo, plugin.crearEstrella(lote));
-            cant -= lote;
+        plugin.sumar(objetivo, cant);
+        say(s, "&aSaldo de " + objetivo.getName() + ": &e" + plugin.saldo(objetivo) + " estrellas&a.");
+    }
+
+    private void saldo(CommandSender s) {
+        if (!(s instanceof Player p)) {
+            say(s, "&cSolo los jugadores pueden usar esto.");
+            return;
         }
-        say(s, "&aEstrellas entregadas a " + objetivo.getName() + ".");
+        say(s, "Tienes &e" + plugin.saldo(p) + " ✦ &7estrellas.");
+    }
+
+    private void pantalla(CommandSender s) {
+        if (!(s instanceof Player p)) {
+            say(s, "&cSolo los jugadores pueden usar esto.");
+            return;
+        }
+        PersistentDataContainer d = p.getPersistentDataContainer();
+        boolean oculto = d.getOrDefault(plugin.kOculto, PersistentDataType.BYTE, (byte) 0) == 1;
+        d.set(plugin.kOculto, PersistentDataType.BYTE, (byte) (oculto ? 0 : 1));
+        plugin.refrescar(p);
+        say(s, oculto ? "&aContador de estrellas mostrado." : "&cContador de estrellas oculto.");
     }
 
     private void amigo(CommandSender s, String[] a) {
@@ -186,7 +207,7 @@ public class SpawnerCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender s, Command cmd, String alias, String[] a) {
         List<String> out = new ArrayList<>();
         if (a.length == 1) {
-            out.add("amigo");
+            out.addAll(List.of("amigo", "saldo", "pantalla"));
             if (s.hasPermission("spawner.admin")) out.addAll(List.of("dar", "estrellas", "recargar"));
         } else if (a.length == 2 && a[0].equalsIgnoreCase("amigo")) {
             out.addAll(List.of("agregar", "quitar"));

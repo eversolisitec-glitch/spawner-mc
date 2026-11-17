@@ -1,5 +1,6 @@
 package com.castros.spawners;
 
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -33,7 +34,10 @@ public final class SpawnerPlugin extends JavaPlugin {
     public record Nivel(int cantidad, int delayMin, int delayMax, int maxCercanos, int costo,
                         double estrellaProb, int estrellaMax, double lootProb, int lootMult) {}
 
-    public NamespacedKey kNivel, kActivo, kDueno, kAmigos, kGenerados, kMobNivel, kEstrella;
+    public NamespacedKey kNivel, kActivo, kDueno, kAmigos, kGenerados, kMobNivel, kEstrella, kSaldo, kOculto;
+
+    /** Barras de jefe usadas para mostrar las estrellas (modo BOSSBAR). */
+    public final Map<UUID, BossBar> barras = new HashMap<>();
 
     /** Mobs generados que aun no se han guardado en el spawner (se guardan cada 5 min, al abrir el menu y al apagar). */
     public final Map<String, Integer> pendientes = new HashMap<>();
@@ -47,13 +51,16 @@ public final class SpawnerPlugin extends JavaPlugin {
         kAmigos = new NamespacedKey(this, "amigos");
         kGenerados = new NamespacedKey(this, "generados");
         kMobNivel = new NamespacedKey(this, "mob_nivel");
-        kEstrella = new NamespacedKey(this, "estrella");
+        kEstrella = new NamespacedKey(this, "estrella"); // solo para convertir estrellas-item antiguas
+        kSaldo = new NamespacedKey(this, "saldo_estrellas");
+        kOculto = new NamespacedKey(this, "ocultar_contador");
 
         getServer().getPluginManager().registerEvents(new SpawnerListener(this), this);
         SpawnerCommand cmd = new SpawnerCommand(this);
         getCommand("spawner").setExecutor(cmd);
         getCommand("spawner").setTabCompleter(cmd);
         getServer().getScheduler().runTaskTimer(this, this::guardarTodo, 6000L, 6000L);
+        getServer().getScheduler().runTaskTimer(this, this::actualizarPantalla, 40L, 40L);
     }
 
     @Override
@@ -174,42 +181,83 @@ public final class SpawnerPlugin extends JavaPlugin {
         return it;
     }
 
-    public ItemStack crearEstrella(int cantidad) {
-        ItemStack it = new ItemStack(Material.NETHER_STAR, cantidad);
-        ItemMeta im = it.getItemMeta();
-        im.displayName(c(getConfig().getString("estrella.nombre", "&e✦ Estrella de Spawner")));
-        im.lore(List.of(c("&7Moneda para mejorar spawners")));
-        im.getPersistentDataContainer().set(kEstrella, PersistentDataType.BYTE, (byte) 1);
-        im.setEnchantmentGlintOverride(true);
-        it.setItemMeta(im);
-        return it;
+    // ---------- Estrellas digitales ----------
+
+    public int saldo(Player p) {
+        return p.getPersistentDataContainer().getOrDefault(kSaldo, PersistentDataType.INTEGER, 0);
     }
+
+    public void setSaldo(Player p, int valor) {
+        p.getPersistentDataContainer().set(kSaldo, PersistentDataType.INTEGER, Math.max(0, valor));
+    }
+
+    public void sumar(Player p, int cantidad) {
+        setSaldo(p, saldo(p) + cantidad);
+        refrescar(p);
+    }
+
+    /** Resta estrellas si alcanza. Devuelve false si el jugador no tiene suficientes. */
+    public boolean restar(Player p, int cantidad) {
+        if (saldo(p) < cantidad) return false;
+        setSaldo(p, saldo(p) - cantidad);
+        refrescar(p);
+        return true;
+    }
+
+    // ---------- Contador en pantalla ----------
+
+    private void quitarBarra(Player p) {
+        BossBar b = barras.remove(p.getUniqueId());
+        if (b != null) p.hideBossBar(b);
+    }
+
+    public void refrescar(Player p) {
+        String modo = getConfig().getString("pantalla.modo", "ACTIONBAR").toUpperCase(Locale.ROOT);
+        boolean oculto = p.getPersistentDataContainer().getOrDefault(kOculto, PersistentDataType.BYTE, (byte) 0) == 1;
+        if (oculto || modo.equals("NINGUNO")) {
+            quitarBarra(p);
+            return;
+        }
+        String texto = getConfig().getString("pantalla.texto", "&e✦ &fEstrellas: &e%estrellas%")
+                .replace("%estrellas%", String.valueOf(saldo(p)));
+        if (modo.equals("BOSSBAR")) {
+            BossBar bar = barras.computeIfAbsent(p.getUniqueId(), u -> {
+                BossBar nueva = BossBar.bossBar(c(texto), 1f, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS);
+                p.showBossBar(nueva);
+                return nueva;
+            });
+            bar.name(c(texto));
+        } else {
+            quitarBarra(p);
+            p.sendActionBar(c(texto));
+        }
+    }
+
+    public void actualizarPantalla() {
+        barras.keySet().removeIf(u -> Bukkit.getPlayer(u) == null);
+        for (Player p : Bukkit.getOnlinePlayers()) refrescar(p);
+    }
+
+    // ---------- Conversion de estrellas-item antiguas ----------
 
     public boolean esEstrella(ItemStack it) {
         return it != null && it.getType() == Material.NETHER_STAR && it.hasItemMeta()
                 && it.getItemMeta().getPersistentDataContainer().has(kEstrella, PersistentDataType.BYTE);
     }
 
-    public int contarEstrellas(Player p) {
+    public void convertirItems(Player p) {
+        ItemStack[] cont = p.getInventory().getContents();
         int total = 0;
-        for (ItemStack s : p.getInventory().getStorageContents()) {
-            if (esEstrella(s)) total += s.getAmount();
-        }
-        return total;
-    }
-
-    public void quitarEstrellas(Player p, int cantidad) {
-        int falta = cantidad;
-        ItemStack[] cont = p.getInventory().getStorageContents();
-        for (int i = 0; i < cont.length && falta > 0; i++) {
+        for (int i = 0; i < cont.length; i++) {
             if (esEstrella(cont[i])) {
-                int q = Math.min(falta, cont[i].getAmount());
-                falta -= q;
-                if (q == cont[i].getAmount()) cont[i] = null;
-                else cont[i].setAmount(cont[i].getAmount() - q);
+                total += cont[i].getAmount();
+                cont[i] = null;
             }
         }
-        p.getInventory().setStorageContents(cont);
+        if (total > 0) {
+            p.getInventory().setContents(cont);
+            sumar(p, total);
+        }
     }
 
     public void entregar(Player p, ItemStack it) {

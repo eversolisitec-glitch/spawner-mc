@@ -5,8 +5,13 @@ Compilar: sube esta carpeta a GitHub; la pestaña Actions compila el .jar (Artif
 ## Tienda
 Para vender spawners, que la tienda ejecute (como consola):
   spawner dar {player} zombie 1
-Para vender estrellas:
+Para vender estrellas (se suman al saldo digital del jugador):
   spawner estrellas {player} 10
 
 ## Config
 Todo (costos, niveles, probabilidades) está en plugins/Spawners/config.yml. Recarga con /spawner recargar.
+
+## Estrellas digitales
+No son ítems: se guardan en el jugador y se ven en pantalla (modo en config.yml: ACTIONBAR, BOSSBAR o NINGUNO).
+/spawner saldo  - ver cuántas tienes
+/spawner pantalla  - mostrar/ocultar el contador

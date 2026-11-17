@@ -1,10 +1,17 @@
 # Rango en bloques para que un spawner encendido funcione (vanilla = 16)
 rango-activacion: 16
 
+# Las estrellas son DIGITALES (no son ítems): van directo al saldo del jugador que mata el mob.
 estrella:
-  nombre: "&e✦ Estrella de Spawner"
-  # true = las estrellas y el loot extra solo salen si mata un jugador
+  # true = el botín extra del spawner solo se multiplica si mata un jugador
+  # (las estrellas siempre necesitan que las mate un jugador)
   solo-si-mata-jugador: true
+
+# Contador de estrellas en pantalla
+pantalla:
+  # ACTIONBAR (texto sobre la barra de vida), BOSSBAR (barra arriba) o NINGUNO
+  modo: ACTIONBAR
+  texto: "&e✦ &fEstrellas: &e%estrellas%"
 
 romper:
   # true = solo se puede romper con Toque de Seda (si no, se cancela y no se pierde)
